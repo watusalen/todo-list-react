@@ -38,6 +38,7 @@ describe('TaskCreateScreen', () => {
       loading: false,
       error: null,
       success: false,
+      validationError: null,
       createTask: createTaskMock,
       reset: jest.fn(),
     });
@@ -70,6 +71,7 @@ describe('TaskCreateScreen', () => {
       loading: false,
       error: null,
       success: false,
+      validationError: 'Informe título e descrição.',
       createTask: createTaskMock,
       reset: jest.fn(),
     });
@@ -78,9 +80,6 @@ describe('TaskCreateScreen', () => {
       <TaskCreateScreen navigation={navigation} route={undefined as any} />
     );
 
-    fireEvent.press(getByText('Criar Tarefa'));
-
-    expect(createTaskMock).not.toHaveBeenCalled();
     expect(getByText('Informe título e descrição.')).toBeTruthy();
   });
 
@@ -89,6 +88,7 @@ describe('TaskCreateScreen', () => {
       loading: false,
       error: 'Erro do serviço',
       success: false,
+      validationError: null,
       createTask: jest.fn(),
       reset: jest.fn(),
     });
@@ -105,6 +105,7 @@ describe('TaskCreateScreen', () => {
       loading: false,
       error: null,
       success: true,
+      validationError: null,
       createTask: jest.fn(),
       reset: jest.fn(),
     });
@@ -120,6 +121,7 @@ describe('TaskCreateScreen', () => {
       loading: false,
       error: null,
       success: false,
+      validationError: null,
       createTask: jest.fn(),
       reset: resetMock,
     });
@@ -138,6 +140,7 @@ describe('TaskCreateScreen', () => {
       loading: true,
       error: null,
       success: false,
+      validationError: null,
       createTask: jest.fn(),
       reset: jest.fn(),
     });
@@ -150,30 +153,20 @@ describe('TaskCreateScreen', () => {
   });
 
   test('mostra mensagem genérica quando createTask rejeita', async () => {
-    const createTaskMock = jest.fn().mockRejectedValue(new Error('Falha no serviço'));
+    const createTaskMock = jest.fn();
     mockUseTaskCreate.mockReturnValue({
       loading: false,
-      error: null,
+      error: 'Erro ao criar a tarefa',
       success: false,
+      validationError: null,
       createTask: createTaskMock,
       reset: jest.fn(),
     });
 
-    const { getByPlaceholderText, getByText, findByText } = render(
+    const { getByText } = render(
       <TaskCreateScreen navigation={navigation} route={undefined as any} />
     );
 
-    fireEvent.changeText(getByPlaceholderText('Adcione um título'), 'Novo título');
-    fireEvent.changeText(
-      getByPlaceholderText('Adicione mais detalhes sobre a tarefa'),
-      'Detalhes'
-    );
-
-    await act(async () => {
-      fireEvent.press(getByText('Criar Tarefa'));
-    });
-
-    expect(await findByText('Não foi possível criar a tarefa.')).toBeTruthy();
-    expect(createTaskMock).toHaveBeenCalledTimes(1);
+    expect(getByText('Erro ao criar a tarefa')).toBeTruthy();
   });
 });

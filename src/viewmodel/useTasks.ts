@@ -1,23 +1,38 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Task } from '../model/entities/task';
 import { ITaskService } from '../model/service/ITaskService';
 
 export interface UseTasksState {
   tasks: Task[];
+  filteredTasks: Task[];
   loading: boolean;
   error: string | null;
+  searchQuery: string;
 }
 
 export interface UseTasksActions {
   refresh: () => Promise<void>;
   deleteTask: (id: number) => Promise<void>;
   toggleComplete: (id: number) => Promise<void>;
+  setSearchQuery: (query: string) => void;
 }
 
 export function useTasks(taskService: ITaskService): UseTasksState & UseTasksActions {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const filteredTasks = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return tasks;
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+    return tasks.filter((task) =>
+      task.title.toLowerCase().includes(query) || task.description.toLowerCase().includes(query)
+    );
+  }, [tasks, searchQuery]);
 
   const refresh = async () => {
     setLoading(true);
@@ -41,6 +56,7 @@ export function useTasks(taskService: ITaskService): UseTasksState & UseTasksAct
       await refresh();
     } catch (err) {
       setError('Erro ao deletar a tarefa');
+      throw err;
     }
   };
 
@@ -58,5 +74,5 @@ export function useTasks(taskService: ITaskService): UseTasksState & UseTasksAct
     refresh();
   }, []);
 
-  return { tasks, loading, error, refresh, deleteTask, toggleComplete };
+  return { tasks, filteredTasks, loading, error, searchQuery, refresh, deleteTask, toggleComplete, setSearchQuery };
 }

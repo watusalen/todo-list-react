@@ -11,6 +11,8 @@ describe('useTaskDetail', () => {
     expect(result.current.loading).toBe(true);
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.task).toEqual(sampleTask);
+    expect(result.current.formTitle).toBe(sampleTask.title);
+    expect(result.current.formDescription).toBe(sampleTask.description);
     expect(result.current.error).toBeNull();
   });
 
@@ -26,6 +28,7 @@ describe('useTaskDetail', () => {
 
     expect(service.updateTask).toHaveBeenCalledWith(updated);
     expect(result.current.task).toEqual(updated);
+    expect(result.current.formTitle).toBe('Novo');
   });
 
   test('deleteTask sem task carregada retorna erro apropriado', async () => {
@@ -47,5 +50,99 @@ describe('useTaskDetail', () => {
     expect(result.current.error).toBe('Erro ao carregar a tarefa');
 
     consoleErrorSpy.mockRestore();
+  });
+
+  test('toggleComplete alterna status de conclusão', async () => {
+    const service = makeTaskService({ updateTask: jest.fn().mockResolvedValue(undefined) });
+    const { result } = renderHook(() => useTaskDetail(service, sampleTask.id));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.task?.completed).toBe(false);
+
+    await act(async () => {
+      await result.current.toggleComplete();
+    });
+
+    expect(service.updateTask).toHaveBeenCalledWith({ ...sampleTask, completed: true });
+    expect(result.current.task?.completed).toBe(true);
+  });
+
+  test('startEditing ativa modo de edição', async () => {
+    const service = makeTaskService();
+    const { result } = renderHook(() => useTaskDetail(service, sampleTask.id));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.isEditing).toBe(false);
+
+    act(() => {
+      result.current.startEditing();
+    });
+
+    expect(result.current.isEditing).toBe(true);
+  });
+
+  test('cancelEditing restaura valores originais', async () => {
+    const service = makeTaskService();
+    const { result } = renderHook(() => useTaskDetail(service, sampleTask.id));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.startEditing();
+      result.current.setFormTitle('Modificado');
+      result.current.setFormDescription('Modificado');
+    });
+
+    expect(result.current.formTitle).toBe('Modificado');
+
+    act(() => {
+      result.current.cancelEditing();
+    });
+
+    expect(result.current.isEditing).toBe(false);
+    expect(result.current.formTitle).toBe(sampleTask.title);
+    expect(result.current.formDescription).toBe(sampleTask.description);
+  });
+
+  test('saveEditing valida campos vazios', async () => {
+    const service = makeTaskService({ updateTask: jest.fn().mockResolvedValue(undefined) });
+    const { result } = renderHook(() => useTaskDetail(service, sampleTask.id));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.startEditing();
+      result.current.setFormTitle('');
+    });
+
+    await act(async () => {
+      await result.current.saveEditing();
+    });
+
+    expect(result.current.validationError).toBe('Informe título e descrição.');
+    expect(service.updateTask).not.toHaveBeenCalled();
+    expect(result.current.isEditing).toBe(true);
+  });
+
+  test('saveEditing faz trim e atualiza tarefa', async () => {
+    const service = makeTaskService({ updateTask: jest.fn().mockResolvedValue(undefined) });
+    const { result } = renderHook(() => useTaskDetail(service, sampleTask.id));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.startEditing();
+      result.current.setFormTitle('  Novo Título  ');
+      result.current.setFormDescription('  Nova Descrição  ');
+    });
+
+    await act(async () => {
+      await result.current.saveEditing();
+    });
+
+    expect(service.updateTask).toHaveBeenCalledWith({
+      ...sampleTask,
+      title: 'Novo Título',
+      description: 'Nova Descrição',
+    });
+    expect(result.current.isEditing).toBe(false);
+    expect(result.current.task?.title).toBe('Novo Título');
   });
 });

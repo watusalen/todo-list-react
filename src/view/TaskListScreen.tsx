@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -26,8 +26,7 @@ import { RootStackParamList } from './types';
 export type TaskListScreenProps = NativeStackScreenProps<RootStackParamList, 'TaskList'>;
 
 export default function TaskListScreen({ navigation }: TaskListScreenProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const { tasks, loading, error, refresh, deleteTask } = useTasks(localTaskService);
+  const { filteredTasks, loading, error, searchQuery, setSearchQuery, refresh, deleteTask } = useTasks(localTaskService);
   const insets = useSafeAreaInsets();
   const { theme, toggleTheme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme, insets.top), [theme, insets.top]);
@@ -40,17 +39,6 @@ export default function TaskListScreen({ navigation }: TaskListScreenProps) {
       refresh();
     }, [refresh])
   );
-
-  const filteredTasks = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return tasks;
-    }
-
-    const query = searchQuery.trim().toLowerCase();
-    return tasks.filter((task) =>
-      task.title.toLowerCase().includes(query) || task.description.toLowerCase().includes(query)
-    );
-  }, [tasks, searchQuery]);
 
   const handleDelete = (id: number) => {
     Alert.alert('Excluir tarefa', 'Tem certeza de que deseja excluir esta tarefa?', [

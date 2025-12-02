@@ -23,11 +23,11 @@ export type TaskCreateScreenProps = NativeStackScreenProps<RootStackParamList, '
 export default function TaskCreateScreen({ navigation }: TaskCreateScreenProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [feedback, setFeedback] = useState<string | null>(null);
 
-  const { loading, error, success, createTask, reset } = useTaskCreate(localTaskService);
+  const { loading, error, success, validationError, createTask, reset } = useTaskCreate(localTaskService);
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const feedback = validationError || error;
 
   useEffect(() => {
     return () => {
@@ -36,31 +36,16 @@ export default function TaskCreateScreen({ navigation }: TaskCreateScreenProps) 
   }, [reset]);
 
   useEffect(() => {
-    if (error) {
-      setFeedback(error);
-    }
-  }, [error]);
-
-  useEffect(() => {
     if (success) {
       navigation.goBack();
     }
   }, [success, navigation]);
 
   const handleSubmit = async () => {
-    setFeedback(null);
-
-    if (!title.trim() || !description.trim()) {
-      setFeedback('Informe título e descrição.');
-      return;
-    }
-
-    try {
-      await createTask(title, description);
+    await createTask(title, description);
+    if (!validationError && !error) {
       setTitle('');
       setDescription('');
-    } catch (submitError) {
-      setFeedback('Não foi possível criar a tarefa.');
     }
   };
 
@@ -77,7 +62,7 @@ export default function TaskCreateScreen({ navigation }: TaskCreateScreenProps) 
             <Text style={styles.label}>Título</Text>
             <TextInput
               style={styles.input}
-              placeholder="Adcione um título"
+              placeholder="Adicione um título"
               placeholderTextColor={theme.colors.muted}
               value={title}
               onChangeText={setTitle}

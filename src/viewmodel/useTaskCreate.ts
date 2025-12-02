@@ -5,6 +5,7 @@ export interface UseTaskCreateState {
   loading: boolean;
   error: string | null;
   success: boolean;
+  validationError: string | null;
 }
 
 export interface UseTaskCreateActions {
@@ -16,13 +17,21 @@ export function useTaskCreate(taskService: ITaskService): UseTaskCreateState & U
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const createTask = async (title: string, description: string) => {
+    setValidationError(null);
+    
+    if (!title.trim() || !description.trim()) {
+      setValidationError('Informe título e descrição.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(false);
     try {
-      await taskService.createTask(title, description);
+      await taskService.createTask(title.trim(), description.trim());
       setSuccess(true);
     } catch (err) {
       if (err instanceof Error) {
@@ -39,7 +48,8 @@ export function useTaskCreate(taskService: ITaskService): UseTaskCreateState & U
     setLoading(false);
     setError(null);
     setSuccess(false);
+    setValidationError(null);
   };
 
-  return { loading, error, success, createTask, reset };
+  return { loading, error, success, validationError, createTask, reset };
 }

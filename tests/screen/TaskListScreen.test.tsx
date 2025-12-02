@@ -65,8 +65,11 @@ describe('TaskListScreen', () => {
     const refreshMock = jest.fn();
     mockUseTasks.mockReturnValue({
       tasks: baseTasks,
+      filteredTasks: baseTasks,
       loading: false,
       error: null,
+      searchQuery: '',
+      setSearchQuery: jest.fn(),
       refresh: refreshMock,
       deleteTask: jest.fn(),
     });
@@ -84,10 +87,15 @@ describe('TaskListScreen', () => {
   });
 
   test('filtra tarefas de acordo com o texto da busca', () => {
+    const filteredResults = [baseTasks[0]];
+    const setSearchQueryMock = jest.fn();
     mockUseTasks.mockReturnValue({
       tasks: baseTasks,
+      filteredTasks: filteredResults,
       loading: false,
       error: null,
+      searchQuery: 'comprar',
+      setSearchQuery: setSearchQueryMock,
       refresh: jest.fn(),
       deleteTask: jest.fn(),
     });
@@ -104,10 +112,15 @@ describe('TaskListScreen', () => {
   });
 
   test('filtra tarefas usando a descrição quando título não combina', () => {
+    const filteredResults = [baseTasks[0]];
+    const setSearchQueryMock = jest.fn();
     mockUseTasks.mockReturnValue({
       tasks: baseTasks,
+      filteredTasks: filteredResults,
       loading: false,
       error: null,
+      searchQuery: 'padaria',
+      setSearchQuery: setSearchQueryMock,
       refresh: jest.fn(),
       deleteTask: jest.fn(),
     });
@@ -126,8 +139,11 @@ describe('TaskListScreen', () => {
   test('exibe indicador de carregamento quando loading está ativo', () => {
     mockUseTasks.mockReturnValue({
       tasks: [],
+      filteredTasks: [],
       loading: true,
       error: null,
+      searchQuery: '',
+      setSearchQuery: jest.fn(),
       refresh: jest.fn(),
       deleteTask: jest.fn(),
     });
@@ -142,8 +158,11 @@ describe('TaskListScreen', () => {
   test('renderiza estado vazio quando não há tarefas', () => {
     mockUseTasks.mockReturnValue({
       tasks: [],
+      filteredTasks: [],
       loading: false,
       error: null,
+      searchQuery: '',
+      setSearchQuery: jest.fn(),
       refresh: jest.fn(),
       deleteTask: jest.fn(),
     });
@@ -160,8 +179,11 @@ describe('TaskListScreen', () => {
     const refreshMock = jest.fn();
     mockUseTasks.mockReturnValue({
       tasks: [],
+      filteredTasks: [],
       loading: false,
       error: 'Erro ao carregar',
+      searchQuery: '',
+      setSearchQuery: jest.fn(),
       refresh: refreshMock,
       deleteTask: jest.fn(),
     });
@@ -178,8 +200,11 @@ describe('TaskListScreen', () => {
     const deleteTaskMock = jest.fn().mockResolvedValue(undefined);
     mockUseTasks.mockReturnValue({
       tasks: baseTasks,
+      filteredTasks: baseTasks,
       loading: false,
       error: null,
+      searchQuery: '',
+      setSearchQuery: jest.fn(),
       refresh: jest.fn(),
       deleteTask: deleteTaskMock,
     });
@@ -210,8 +235,11 @@ describe('TaskListScreen', () => {
     const deleteTaskMock = jest.fn().mockRejectedValue(new Error('Falhou'));
     mockUseTasks.mockReturnValue({
       tasks: baseTasks,
+      filteredTasks: baseTasks,
       loading: false,
       error: null,
+      searchQuery: '',
+      setSearchQuery: jest.fn(),
       refresh: jest.fn(),
       deleteTask: deleteTaskMock,
     });
@@ -239,8 +267,11 @@ describe('TaskListScreen', () => {
   test('aciona toggleTheme ao tocar no botão de alternância de tema', () => {
     mockUseTasks.mockReturnValue({
       tasks: baseTasks,
+      filteredTasks: baseTasks,
       loading: false,
       error: null,
+      searchQuery: '',
+      setSearchQuery: jest.fn(),
       refresh: jest.fn(),
       deleteTask: jest.fn(),
     });
