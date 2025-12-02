@@ -2,9 +2,6 @@
 import { Task } from '../../src/model/entities/task';
 import { ITaskService } from '../../src/model/service/ITaskService';
 
-/**
- * Cria um fake service mínimo. Passe overrides para modificar métodos específicos.
- */
 export function makeTaskService(overrides?: Partial<ITaskService>): ITaskService {
   const sample: Task = { id: 1, title: 'T1', description: 'D1', completed: false };
 
