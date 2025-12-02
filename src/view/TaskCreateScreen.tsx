@@ -62,7 +62,7 @@ export default function TaskCreateScreen({ navigation }: TaskCreateScreenProps) 
             <Text style={styles.label}>Título</Text>
             <TextInput
               style={styles.input}
-              placeholder="Adcione um título"
+              placeholder="Adicione um título"
               placeholderTextColor={theme.colors.muted}
               value={title}
               onChangeText={setTitle}
