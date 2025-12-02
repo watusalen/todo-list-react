@@ -16,6 +16,45 @@ describe('useTaskCreate', () => {
     expect(result.current.success).toBe(true);
     expect(result.current.loading).toBe(false);
     expect(result.current.error).toBeNull();
+    expect(result.current.validationError).toBeNull();
+  });
+
+  test('createTask com campos vazios retorna erro de validação', async () => {
+    const service = makeTaskService();
+    const { result } = renderHook(() => useTaskCreate(service));
+
+    await act(async () => {
+      await result.current.createTask('', '');
+    });
+
+    expect(result.current.success).toBe(false);
+    expect(result.current.validationError).toBe('Informe título e descrição.');
+    expect(result.current.loading).toBe(false);
+    expect(service.createTask).not.toHaveBeenCalled();
+  });
+
+  test('createTask com apenas título vazio retorna erro de validação', async () => {
+    const service = makeTaskService();
+    const { result } = renderHook(() => useTaskCreate(service));
+
+    await act(async () => {
+      await result.current.createTask('', 'Descrição');
+    });
+
+    expect(result.current.validationError).toBe('Informe título e descrição.');
+    expect(service.createTask).not.toHaveBeenCalled();
+  });
+
+  test('createTask com apenas descrição vazia retorna erro de validação', async () => {
+    const service = makeTaskService();
+    const { result } = renderHook(() => useTaskCreate(service));
+
+    await act(async () => {
+      await result.current.createTask('Título', '');
+    });
+
+    expect(result.current.validationError).toBe('Informe título e descrição.');
+    expect(service.createTask).not.toHaveBeenCalled();
   });
 
   test('createTask em falha propaga mensagem de erro', async () => {
@@ -30,6 +69,7 @@ describe('useTaskCreate', () => {
     expect(result.current.success).toBe(false);
     expect(result.current.error).toBe('falha criar');
     expect(result.current.loading).toBe(false);
+    expect(result.current.validationError).toBeNull();
 
     consoleErrorSpy.mockRestore();
   });
@@ -47,5 +87,6 @@ describe('useTaskCreate', () => {
     expect(result.current.success).toBe(false);
     expect(result.current.loading).toBe(false);
     expect(result.current.error).toBeNull();
+    expect(result.current.validationError).toBeNull();
   });
 });

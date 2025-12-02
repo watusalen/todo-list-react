@@ -56,9 +56,19 @@ describe('TaskDetailScreen', () => {
       task: null,
       loading: true,
       error: null,
+      validationError: null,
+      isEditing: false,
+      formTitle: '',
+      formDescription: '',
       loadTask: jest.fn(),
       updateTask: jest.fn(),
       deleteTask: jest.fn(),
+      toggleComplete: jest.fn(),
+      startEditing: jest.fn(),
+      cancelEditing: jest.fn(),
+      saveEditing: jest.fn(),
+      setFormTitle: jest.fn(),
+      setFormDescription: jest.fn(),
     });
 
     const { UNSAFE_getAllByType } = render(
@@ -74,9 +84,19 @@ describe('TaskDetailScreen', () => {
       task: null,
       loading: false,
       error: 'Erro ao carregar a tarefa',
+      validationError: null,
+      isEditing: false,
+      formTitle: '',
+      formDescription: '',
       loadTask: loadTaskMock,
       updateTask: jest.fn(),
       deleteTask: jest.fn(),
+      toggleComplete: jest.fn(),
+      startEditing: jest.fn(),
+      cancelEditing: jest.fn(),
+      saveEditing: jest.fn(),
+      setFormTitle: jest.fn(),
+      setFormDescription: jest.fn(),
     });
 
     const { getByText } = render(
@@ -88,16 +108,25 @@ describe('TaskDetailScreen', () => {
   });
 
   test('renderiza dados da tarefa e alterna status de conclusão', async () => {
-    const updateTaskMock = jest.fn().mockResolvedValue(undefined);
-    const loadTaskMock = jest.fn().mockResolvedValue(undefined);
+    const toggleCompleteMock = jest.fn().mockResolvedValue(undefined);
 
     mockUseTaskDetail.mockReturnValue({
       task: baseTask,
       loading: false,
       error: null,
-      updateTask: updateTaskMock,
-      loadTask: loadTaskMock,
+      validationError: null,
+      isEditing: false,
+      formTitle: baseTask.title,
+      formDescription: baseTask.description,
+      updateTask: jest.fn(),
+      loadTask: jest.fn(),
       deleteTask: jest.fn(),
+      toggleComplete: toggleCompleteMock,
+      startEditing: jest.fn(),
+      cancelEditing: jest.fn(),
+      saveEditing: jest.fn(),
+      setFormTitle: jest.fn(),
+      setFormDescription: jest.fn(),
     });
 
     const { getByText } = render(
@@ -110,28 +139,48 @@ describe('TaskDetailScreen', () => {
       fireEvent.press(primaryButton);
     });
 
-    expect(updateTaskMock).toHaveBeenCalledWith({ ...baseTask, completed: true });
-    expect(loadTaskMock).toHaveBeenCalledWith(99);
+    expect(toggleCompleteMock).toHaveBeenCalledTimes(1);
   });
 
   test('habilita modo edição e salva alterações com trims', async () => {
-    const updateTaskMock = jest.fn().mockResolvedValue(undefined);
-    const loadTaskMock = jest.fn().mockResolvedValue(undefined);
+    const startEditingMock = jest.fn();
+    const setFormTitleMock = jest.fn();
+    const setFormDescriptionMock = jest.fn();
+    const saveEditingMock = jest.fn().mockResolvedValue(undefined);
 
-    mockUseTaskDetail.mockReturnValue({
+    let isEditing = false;
+    mockUseTaskDetail.mockImplementation(() => ({
       task: baseTask,
       loading: false,
       error: null,
-      updateTask: updateTaskMock,
-      loadTask: loadTaskMock,
+      validationError: null,
+      isEditing,
+      formTitle: isEditing ? '  Novo título  ' : baseTask.title,
+      formDescription: isEditing ? '  Nova descrição  ' : baseTask.description,
+      updateTask: jest.fn(),
+      loadTask: jest.fn(),
       deleteTask: jest.fn(),
-    });
+      toggleComplete: jest.fn(),
+      startEditing: () => {
+        isEditing = true;
+        startEditingMock();
+      },
+      cancelEditing: jest.fn(),
+      saveEditing: saveEditingMock,
+      setFormTitle: setFormTitleMock,
+      setFormDescription: setFormDescriptionMock,
+    }));
 
-    const { getByText, getByPlaceholderText } = render(
+    const { getByText, getByPlaceholderText, rerender } = render(
       <TaskDetailScreen navigation={navigation} route={route} />
     );
 
     fireEvent.press(getByText('Editar tarefa'));
+    expect(startEditingMock).toHaveBeenCalledTimes(1);
+
+    // Forçar rerender para refletir mudança de estado
+    isEditing = true;
+    rerender(<TaskDetailScreen navigation={navigation} route={route} />);
 
     const titleInput = getByPlaceholderText('Título da tarefa');
     const descriptionInput = getByPlaceholderText('Descreva detalhes importantes');
@@ -139,20 +188,14 @@ describe('TaskDetailScreen', () => {
     fireEvent.changeText(titleInput, '  Novo título  ');
     fireEvent.changeText(descriptionInput, '  Nova descrição  ');
 
+    expect(setFormTitleMock).toHaveBeenCalled();
+    expect(setFormDescriptionMock).toHaveBeenCalled();
+
     await act(async () => {
       fireEvent.press(getByText('Salvar Alterações'));
     });
 
-    expect(updateTaskMock).toHaveBeenCalledWith({
-      ...baseTask,
-      title: 'Novo título',
-      description: 'Nova descrição',
-    });
-    expect(loadTaskMock).toHaveBeenCalledWith(99);
-
-    await waitFor(() => {
-      expect(getByText('Editar tarefa')).toBeTruthy();
-    });
+    expect(saveEditingMock).toHaveBeenCalledTimes(1);
   });
 
   test('exibe mensagem de feedback quando erro é recebido', () => {
@@ -160,9 +203,19 @@ describe('TaskDetailScreen', () => {
       task: baseTask,
       loading: false,
       error: 'Falha ao atualizar',
+      validationError: null,
+      isEditing: false,
+      formTitle: baseTask.title,
+      formDescription: baseTask.description,
       updateTask: jest.fn(),
       loadTask: jest.fn(),
       deleteTask: jest.fn(),
+      toggleComplete: jest.fn(),
+      startEditing: jest.fn(),
+      cancelEditing: jest.fn(),
+      saveEditing: jest.fn(),
+      setFormTitle: jest.fn(),
+      setFormDescription: jest.fn(),
     });
 
     const { getByText } = render(
@@ -173,57 +226,60 @@ describe('TaskDetailScreen', () => {
   });
 
   test('mostra erro ao tentar alternar conclusão quando updateTask falha', async () => {
-    const updateTaskMock = jest.fn().mockRejectedValue(new Error('Falhou'));
+    const toggleCompleteMock = jest.fn().mockRejectedValue(new Error('Falhou'));
     mockUseTaskDetail.mockReturnValue({
       task: baseTask,
       loading: false,
-      error: null,
-      updateTask: updateTaskMock,
+      error: 'Erro ao atualizar a tarefa',
+      validationError: null,
+      isEditing: false,
+      formTitle: baseTask.title,
+      formDescription: baseTask.description,
+      updateTask: jest.fn(),
       loadTask: jest.fn(),
       deleteTask: jest.fn(),
+      toggleComplete: toggleCompleteMock,
+      startEditing: jest.fn(),
+      cancelEditing: jest.fn(),
+      saveEditing: jest.fn(),
+      setFormTitle: jest.fn(),
+      setFormDescription: jest.fn(),
     });
 
-    const { getByText, findByText } = render(
+    const { getByText } = render(
       <TaskDetailScreen navigation={navigation} route={route} />
     );
 
-    await act(async () => {
-      fireEvent.press(getByText('Marcar como Concluída'));
-    });
-
-    expect(await findByText('Erro ao atualizar a tarefa.')).toBeTruthy();
-    expect(updateTaskMock).toHaveBeenCalledTimes(1);
+    expect(getByText('Erro ao atualizar a tarefa')).toBeTruthy();
   });
 
   test('mantém mensagem do serviço quando salvar falha durante edição', async () => {
     const errorMessage = 'Título inválido';
-    const updateTaskMock = jest.fn().mockRejectedValue(new Error(errorMessage));
+    const saveEditingMock = jest.fn().mockRejectedValue(new Error(errorMessage));
     mockUseTaskDetail.mockReturnValue({
       task: baseTask,
       loading: false,
-      error: null,
-      updateTask: updateTaskMock,
+      error: errorMessage,
+      validationError: null,
+      isEditing: true,
+      formTitle: 'Título qualquer',
+      formDescription: 'Descrição qualquer',
+      updateTask: jest.fn(),
       loadTask: jest.fn(),
       deleteTask: jest.fn(),
+      toggleComplete: jest.fn(),
+      startEditing: jest.fn(),
+      cancelEditing: jest.fn(),
+      saveEditing: saveEditingMock,
+      setFormTitle: jest.fn(),
+      setFormDescription: jest.fn(),
     });
 
-    const { getByPlaceholderText, getByText, findByText } = render(
+    const { getByText } = render(
       <TaskDetailScreen navigation={navigation} route={route} />
     );
 
-    fireEvent.press(getByText('Editar tarefa'));
-    fireEvent.changeText(getByPlaceholderText('Título da tarefa'), 'Título qualquer');
-    fireEvent.changeText(
-      getByPlaceholderText('Descreva detalhes importantes'),
-      'Descrição qualquer'
-    );
-
-    await act(async () => {
-      fireEvent.press(getByText('Salvar Alterações'));
-    });
-
-    expect(await findByText(errorMessage)).toBeTruthy();
-    expect(updateTaskMock).toHaveBeenCalledTimes(1);
+    expect(getByText(errorMessage)).toBeTruthy();
   });
 
   test('confirma exclusão e navega de volta para a lista', async () => {
@@ -233,9 +289,19 @@ describe('TaskDetailScreen', () => {
       task: baseTask,
       loading: false,
       error: null,
+      validationError: null,
+      isEditing: false,
+      formTitle: baseTask.title,
+      formDescription: baseTask.description,
       updateTask: jest.fn(),
       loadTask: jest.fn(),
       deleteTask: deleteTaskMock,
+      toggleComplete: jest.fn(),
+      startEditing: jest.fn(),
+      cancelEditing: jest.fn(),
+      saveEditing: jest.fn(),
+      setFormTitle: jest.fn(),
+      setFormDescription: jest.fn(),
     });
 
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});

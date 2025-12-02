@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -22,44 +22,29 @@ export type TaskDetailScreenProps = NativeStackScreenProps<RootStackParamList, '
 
 export default function TaskDetailScreen({ route, navigation }: TaskDetailScreenProps) {
   const { taskId } = route.params;
-  const { task, loading, error, updateTask, deleteTask, loadTask } = useTaskDetail(
-    localTaskService,
-    taskId
-  );
-  const [busy, setBusy] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formTitle, setFormTitle] = useState('');
-  const [formDescription, setFormDescription] = useState('');
+  const { 
+    task, 
+    loading, 
+    error, 
+    validationError,
+    isEditing,
+    formTitle,
+    formDescription,
+    deleteTask, 
+    loadTask,
+    toggleComplete,
+    startEditing,
+    cancelEditing,
+    saveEditing,
+    setFormTitle,
+    setFormDescription,
+  } = useTaskDetail(localTaskService, taskId);
+  
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  useEffect(() => {
-    setFeedback(error ?? null);
-  }, [error]);
-
-  useEffect(() => {
-    if (task) {
-      setFormTitle(task.title);
-      setFormDescription(task.description);
-    }
-  }, [task]);
-
-  const handleToggleEditing = useCallback(() => {
-    if (!task) {
-      return;
-    }
-
-    setFeedback(null);
-
-    if (isEditing) {
-      setIsEditing(false);
-      setFormTitle(task.title);
-      setFormDescription(task.description);
-    } else {
-      setIsEditing(true);
-    }
-  }, [isEditing, task]);
+  // Feedback unificado do ViewModel
+  const feedback = validationError || error;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -67,55 +52,6 @@ export default function TaskDetailScreen({ route, navigation }: TaskDetailScreen
       headerRight: undefined,
     });
   }, [navigation, isEditing]);
-
-  const handleToggleComplete = async () => {
-    if (!task || isEditing) {
-      return;
-    }
-
-    setBusy(true);
-    setFeedback(null);
-
-    try {
-      await updateTask({ ...task, completed: !task.completed });
-      await loadTask(task.id);
-    } catch (toggleError) {
-      setFeedback('Erro ao atualizar a tarefa.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!task) {
-      return;
-    }
-
-    const trimmedTitle = formTitle.trim();
-    const trimmedDescription = formDescription.trim();
-
-    if (!trimmedTitle || !trimmedDescription) {
-      setFeedback('Informe título e descrição.');
-      return;
-    }
-
-    setBusy(true);
-    setFeedback(null);
-
-    try {
-      await updateTask({ ...task, title: trimmedTitle, description: trimmedDescription });
-      await loadTask(task.id);
-      setIsEditing(false);
-    } catch (saveError) {
-      if (saveError instanceof Error && saveError.message) {
-        setFeedback(saveError.message);
-      } else {
-        setFeedback('Erro ao atualizar a tarefa.');
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const handleDelete = () => {
     Alert.alert('Excluir tarefa', 'Deseja realmente excluir esta tarefa?', [
@@ -125,14 +61,10 @@ export default function TaskDetailScreen({ route, navigation }: TaskDetailScreen
         style: 'destructive',
         onPress: async () => {
           try {
-            setBusy(true);
-            setIsEditing(false);
             await deleteTask();
             navigation.navigate('TaskList');
           } catch (deleteError) {
-            setFeedback('Erro ao excluir a tarefa.');
-          } finally {
-            setBusy(false);
+            // Erro já tratado no ViewModel
           }
         },
       },
@@ -223,8 +155,8 @@ export default function TaskDetailScreen({ route, navigation }: TaskDetailScreen
 
         <TouchableOpacity
           style={[styles.secondaryButton, isEditing && styles.secondaryButtonActive]}
-          onPress={handleToggleEditing}
-          disabled={busy}
+          onPress={isEditing ? cancelEditing : startEditing}
+          disabled={loading}
         >
           <Text style={[styles.secondaryButtonLabel, isEditing && styles.secondaryButtonLabelActive]}>
             {isEditing ? 'Cancelar edição' : 'Editar tarefa'}
@@ -236,10 +168,10 @@ export default function TaskDetailScreen({ route, navigation }: TaskDetailScreen
             styles.primaryButton,
             !isEditing && (task.completed ? styles.primaryButtonWarning : styles.primaryButtonSuccess),
           ]}
-          onPress={isEditing ? handleSave : handleToggleComplete}
-          disabled={busy}
+          onPress={isEditing ? saveEditing : toggleComplete}
+          disabled={loading}
         >
-          {busy ? (
+          {loading ? (
             <ActivityIndicator color={spinnerColor} />
           ) : (
             <Text
